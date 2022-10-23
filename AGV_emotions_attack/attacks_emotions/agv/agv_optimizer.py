@@ -113,6 +113,7 @@ class ParamerESOptimizer(object):
         return n
 
 
+
 class PatamerGAOptimizer(object):
 
     def __init__(self, fitness, compare):  
