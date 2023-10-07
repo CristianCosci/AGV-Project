@@ -1,6 +1,6 @@
-# AGV-Project
+# Adversarial Attacks on Explainability Methods for Image Classification Models
 This is the official repository of the AGV-Project for crafting evolutionay adversarial attacks using Instagram inspired image filters.
-The Emotion Recognizer has been trained on the AffectNet dataset that can be downloaded from this [link](http://mohammadmahoor.com/affectnet/) upon request.
+
 
 Before running the code make sure to add the images for the adversarial attack in the folder: datasets/images_dataset/emo_images/selected_balanced_images_renamed.
 The images must be renamed using the following scheme: class_id.image.id.jpg.
@@ -22,16 +22,8 @@ pip install -r requirements_gpu.txt
 python attacks_emotions/agv/agv_attack.py -l TEST.txt -o TEST.json -bs 1 -e 10 -pp  "offsprings" -ps "direct" -po "ES"  -np 10 -el true -s pareto -df1 ssim -db "IMAGENET-RESNET"  -nf 3 -r true -lf TEST.out
 ```
 
-- To test the script with less execution:
-```sh
-python attacks_emotions/agv/agv_attack.py -l TEST.txt -o TEST.json -bs 1 -e 1 -pp  "offsprings" -ps "direct" -po "ES"  -np 1 -el true -s pareto -df1 ssim -db "IMAGENET-RESNET"  -nf 3 -r true -lf TEST.out
-```
 
 - To see image result:
 ```sh
 python attacks_emotions/agv/agv_attack.py -bf TEST/best_jsons -db "IMAGENET-RESNET" -sae_best=True -img_id 0
-
-or
-
-python attacks_emotions/agv/agv_attack.py -i TEST/best_jsons/img_0_TEST.json -t false -sae 1
 ```
