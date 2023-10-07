@@ -4,8 +4,9 @@ import pathlib
 import numpy as np
 import os
 
+import tensorflow as tf
 from tensorflow.keras.preprocessing import image
-from models.keras_models import keras_mobilenet_model
+from models.keras_models import keras_resnet_model
 # pool = Pool()
 
 def load_single_image(img_path, img_size=224):
@@ -55,18 +56,19 @@ class Imagenet:
         if not os.path.isdir:
             raise Exception("Please prepare the dataset first")
 
+
     def get_test_dataset(self, img_size=224, num_images=100):
         self.image_size = img_size
         X, Y = data_images(self.img_folder, self.image_size, selected_idx=num_images)
         X /= 255
+        #X = tf.keras.applications.mobilenet.preprocess_input(X) #if you want to do preprocessing before
         return X, Y
-
 
 
     def load_model_by_name(self, model_name):
  
-        if model_name == 'mobilenet':
-            model = keras_mobilenet_model() 
+        if model_name == 'resnet':
+            model = keras_resnet_model() 
         else:
             raise Exception("Unsupported model: [%s]" % model_name)
 
@@ -76,7 +78,7 @@ if __name__ == '__main__':
     dataset = Imagenet()
 
     X, Y = dataset.get_test_dataset()
-    model = dataset.load_model_by_name('mobilenet')
+    model = dataset.load_model_by_name('resnet')
 
 
     

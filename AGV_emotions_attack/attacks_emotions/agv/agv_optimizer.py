@@ -14,10 +14,15 @@ from nsga2 import nsga_2_pass,dominates
 from agv_individual import Individual
 from agv_model_loader import ModelLoader
 
+import matplotlib.pyplot as plt
 
 import json
 
 from agv_tests import mkdir_p
+from agv_tests import get_cam
+
+from fitness import inv_attack_rate
+from agv_datasets import build_model
 
 import math 
 STATE_EXT = "state"
@@ -221,8 +226,18 @@ class AGVOptimizer(object):
         #select
         all_elements = [offspring for offspring in offsprings]
         all_elements+= [parent for parent in self.population]
-        new_pop = nsga_2_pass(len(self.population), [e.fitness for e in all_elements])
-        self.population = [all_elements[p] for p in new_pop]
+        to_select = [] # new list containing elements that don't lead to a class change
+        for element in all_elements: # find these elements checking the inv_attack_rate
+            if inv_attack_rate(self.model, np.expand_dims(element.X, axis=0), np.expand_dims(element.apply(element.X), axis=0)) == 1:
+                to_select.append(element)
+        
+        self.selection_log.append(20 - len(to_select))#class change logging
+
+        if len(to_select) == 0: # If there are no available filters to use return to next epoch
+            return
+
+        new_pop = nsga_2_pass(len(self.population), [e.fitness for e in to_select])
+        self.population = [to_select[p] for p in new_pop]
 
     def __init__(self, 
                  Nf,   
@@ -241,7 +256,8 @@ class AGVOptimizer(object):
                  logs_fitness = None,
                  save_candidates = None,
                  logs_path = "stats.txt",
-                 save_state = None
+                 save_state = None,
+                 X = None
                  ):
 
         if  (not repetitions) and (len(filters) < Nf):
@@ -251,7 +267,8 @@ class AGVOptimizer(object):
         self.population = [Individual(Nf,
                                       filters,  
                                       fitness_max,
-                                      self.repetitions) for _ in range(NP)]
+                                      self.repetitions,
+                                      X) for _ in range(NP)]
         self.filters = filters
         self.fitness = fitness
         self.ga_domain = [0, len(filters)-1]
@@ -280,7 +297,9 @@ class AGVOptimizer(object):
         self._pbest = None
         self._first= True
 
-        
+        # attribute for class change logging
+        self.model = build_model()
+        self.selection_log = []
 
         #test        
         if  selection_type.find("pareto") >= 0:
@@ -453,7 +472,12 @@ class AGVOptimizer(object):
         optimizer_state.fitness = fitness
         return optimizer_state
         
-    def fit(self, X, Y, batch, epoch = 5):
+    def fit(self, X, Y, batch, target, target_id, epoch = 5):
+        #salvataggio cam per calcolarla solo una volta, da migliorare
+        cam_original_image = get_cam(target[0])
+        P = str(os.getcwd()) + "/img_cam/img_cam.png"
+        plt.imsave(P, cam_original_image, cmap='gray')
+
         self._first = self._last_epoch == 0
         P = os.path.splitext(self.model_path)[0]
         P = os.path.join(P, "logs_txts")
@@ -478,16 +502,24 @@ class AGVOptimizer(object):
                     best = self._pbest if self.use_elitims \
                     else self.population[int(len(self.population)/2)] if self.selection_type == "pareto" \
                     else self.population[0]
+
                     Xf = np.array([best.apply(X[i]) for i in range(X.shape[0])])
                     fits = self.fitness(Xf, X, Y)
+
                     if type(fits) == float: #it is attack rate
                         fitsfile.write("{}\n".format(1.0-fits))
                     else:
-                        fitsfile.write("{}\t{}\n".format(1.0-fits[0],fits[1]))
+                        fitsfile.write("target id: {}\t".format(target_id))
+                        fitsfile.write("{}\t{}\n".format(fits[0],fits[1]))
+                        # before was fitsfile.write("{}\t{}\n".format(1.0-fits[0],fits[1]))
                 
             #update last epoch
             self._last_epoch = e+1
             #save state if needed
             #self._save_state(e)           
+
+        #logging number of elements that caused class change
+        with open("TEST/logs_txts/log_selection.txt", "a") as file:
+            file.write(f'image id: {self.img_id} --- {self.selection_log}\n')
 
         return self._return_best()

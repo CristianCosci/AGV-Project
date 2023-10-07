@@ -51,7 +51,7 @@ def calculate_crowding_distance(front,chroms_obj_record):
                 distance[sorted_keys[i]]=distance[sorted_keys[i]]+(obj[sorted_keys[i+1]]-obj[sorted_keys[i-1]])/(obj[sorted_keys[len(front)-1]]-obj[sorted_keys[0]])
     return distance            
 '''----------selection----------'''
-def selection(population_size,front,chroms_obj_record):   
+def selection(population_size,front,chroms_obj_record):
     N=0
     new_pop=[]
     while N < population_size:
@@ -74,4 +74,3 @@ def selection(population_size,front,chroms_obj_record):
 def nsga_2_pass(N, chroms_obj_record):
     front = non_dominated_sorting(len(chroms_obj_record),chroms_obj_record)
     return selection(N, front, chroms_obj_record)
-      

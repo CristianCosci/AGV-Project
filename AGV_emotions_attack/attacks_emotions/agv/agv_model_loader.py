@@ -4,10 +4,13 @@ import copy
 import agv_individual
 import base64
 
+from agv_xai_utils import *
+
 class ModelLoader(object):
 
     def __init__(self):
-        self.model = None 
+        self.model = None
+        self.gradcam_mask_dict = None #new attributo to load selected pixels
 
     def load(self,path):
         with open(path, 'r') as jfile:

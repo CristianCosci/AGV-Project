@@ -1,0 +1,18 @@
+# Byte-compiled / optimized / DLL files
+__pycache__
+__pycache__/
+*.py[cod]
+*$py.class
+.vscode
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+#TEST dir
+TEST/
+img_cam/
+
+prova.py
+prova*
+
+*.sh

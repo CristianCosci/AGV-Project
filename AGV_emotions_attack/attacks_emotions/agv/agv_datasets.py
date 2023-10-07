@@ -10,6 +10,11 @@ from datasets.images import Imagenet
 DATASET_ID = 0
 MODEL_ID = 1
 
+def build_model():
+    info_db_fq = database_and_model()["IMAGENET-RESNET"]
+    dataset = info_db_fq[DATASET_ID]
+    model = dataset.load_model_by_name(info_db_fq[MODEL_ID])
+    return model
 
 def build_model_and_dataset(dataset_name):
     info_db_fq = database_and_model()[dataset_name]
@@ -65,9 +70,9 @@ class DatasetSubset:
 def database_and_model():
     return {
 
-        'IMAGENET-MOBILENET' : [
-            DatasetSubset(Imagenet, nsamples = 80, start_nsamples=0),
-            'mobilenet',       
+        'IMAGENET-RESNET' : [
+            DatasetSubset(Imagenet, nsamples = 200, start_nsamples=0),
+            'resnet',       
         ],            
 
     }    

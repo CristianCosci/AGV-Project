@@ -19,9 +19,33 @@ from agv_datasets import database_and_model
 from agv_distances import get_distance_functions
 from agv_metrics import compute_metricts
 
-from agv_tests import test, test_fits, save_adv_ex  
+from agv_tests import *
+#from agv_tests import test, test_fits, save_adv_ex
+
 from agv_tests import mkdir_p, save_adv_best
 from log import Log
+
+import time
+start_time = time.time()
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+	try:
+		# Currently, memory growth needs to be the same across GPUs
+		for gpu in gpus:
+			tf.config.experimental.set_memory_growth(gpu, True)
+		logical_gpus = tf.config.list_logical_devices('GPU')
+		print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+	except RuntimeError as e:
+		# Memory growth must be set before GPUs have been initialized
+		print(e)
+
+P = os.getcwd()
+P = str(P) + '/img_cam/'
+from random import choice #new method
+if not os.path.exists(P):
+  # if the demo_folder directory is not present 
+  # then create it.
+  os.makedirs(P)
 
 def main(dataset_name,
          model_path, 
@@ -40,6 +64,10 @@ def main(dataset_name,
          selection="ranking",
          logs_fitness = None,         
          params_to_save = {}):
+
+    #block seed
+    random.seed(42)
+    
     #get model and dataset
     model_one, X, Y = build_model_and_dataset(dataset_name)
     print("shape of X: ", X.shape)
@@ -49,16 +77,17 @@ def main(dataset_name,
     print("the models are: ", model_name)
 
     #fitness 
-    f_quality  = lambda Xf, X : float(inv_attack_rate(model_one, Xf, X ))
+    #f_quality  = lambda Xf, X : float(inv_attack_rate(model_one, Xf, X ))
 
+    f_distance_xai = get_distance_functions(dataset_name, model_one)['ssim_score_target']
     f_distance_one = get_distance_functions(dataset_name, model_one)[distance_function_one]
     #by ranking or by pareto
     if selection == "ranking":
-        fit = lambda Xf, X, Y  : f_quality(Xf, X) #+ f_distance(Xf,X) * 0.95     
+        fit = lambda Xf, X, Y  : f_distance_xai(Xf, X) #+ f_distance(Xf,X) * 0.95     
     else: #pareto or pareto|no-params
       # if selection == "pareto":
         fit = lambda Xf, X, Y, only_quality = False: \
-                [f_quality(Xf, X), f_distance_one(Xf, X)] if not only_quality else f_quality(Xf, X)
+                [f_distance_xai(Xf, X), f_distance_one(Xf, X)] if not only_quality else f_distance_xai(Xf, X)
 
     #train AGV 
     opt = None
@@ -91,16 +120,19 @@ def main(dataset_name,
                               repetitions=repetitions,
                               logs_fitness=logs_fitness,                              
                               logs_path = logs_path,
-                              save_state=(training_state, model_name, params_to_save)
+                              save_state=(training_state, model_name, params_to_save),
+                              X = X[i]
                             )
-          print(X[i:i+1].shape, X[i:i+1].mean(), "original class:", Y[i:i+1], np.argmax(Y[i:i+1]), ", predicted class:", np.argmax(model_one.predict(X[i:i+1])))
-          best_ind = opt.fit(X[i:i+1], Y[i:i+1], batch_size, epochs)
-          
-          best.append(best_ind)              
-
           OG_class = np.argmax(model_one.predict(X[i:i+1]))
+          print(X[i:i+1].shape, X[i:i+1].mean(), "original class:", Y[i:i+1], np.argmax(Y[i:i+1]), ", predicted class:", OG_class)
+          # print(f'X SHAPE {X.shape[0]}')
+          target_id = choice([target_choice for target_choice in range(X.shape[0]) if target_choice not in [i]])
+          print(f'CHOICE {target_id}')
+          best_ind = opt.fit(X[i:i+1], Y[i:i+1], batch_size, X[target_id:target_id+1], target_id, epochs)
+          
+          best.append(best_ind)
           print("class of original image: ", OG_class )
-          X_modified_with_best = np.array(best_ind.apply(X[i]))         
+          X_modified_with_best = np.array(best_ind.apply(X[i]))
           X_modified_with_best =  np.expand_dims(X_modified_with_best, axis=0)
           
           MOD_class = np.argmax(model_one.predict(X_modified_with_best))
@@ -143,6 +175,9 @@ def main(dataset_name,
         mkdir_p(P)   
         P_df = os.path.join(P,  "class_info_df.csv")
         class_info_df.to_csv(P_df, encoding='utf-8', index=False)
+  
+    print("--- %s seconds ---" % (time.time() - start_time))
+
                     
 
 
@@ -210,4 +245,4 @@ if __name__ == "__main__":
                     dataset_name=inargs.dataset)
     if type(inargs.best_folder) is str and (inargs.save_adv_best) and inargs.image_id >= 0:
         save_adv_best(inargs.best_folder, image_id = inargs.image_id, dataset_name=inargs.dataset )
-    #----        
+    #----

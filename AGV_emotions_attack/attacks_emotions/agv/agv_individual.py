@@ -1,15 +1,19 @@
 import copy
 import random
 
+from agv_xai_utils import *
+
 class Individual(object):
 
     def __init__(self, 
                  Nf,
                  filters, 
                  fitness_max,
-                 repetitions = True):
+                 repetitions = True,
+                 X = None):
+
         if repetitions:           
-            self.genotype = [random.randrange(0, len(filters)) for _ in range(Nf)]        
+            self.genotype = [random.randrange(0, len(filters)) for _ in range(Nf)]
         else:
             self.genotype = random.sample(range(0, len(filters)), Nf) #
         self.params = []
@@ -18,7 +22,10 @@ class Individual(object):
             self.params += [d.value for d in self.filters[fid].domains]
         self.fitness_max = fitness_max
         self.fitness = fitness_max
-    
+        if X is not None: # in order to access the image X as Individual's attribute 
+            self.X = X
+
+
     def apply(self, image, params = None):
         if params is None:
             params = self.params
@@ -28,6 +35,7 @@ class Individual(object):
             image = ifilter(image,*params[ilast:ilast+ifilter.nparams()])
             ilast += ifilter.nparams()
         return image
+
 
     def change(self, i, j, rand_params = False):
         p_i = 0
