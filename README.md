@@ -23,6 +23,7 @@ by the explainability method. However, after applying a perturbation generated b
 ![Immagine 3](imgs/OG_vs_best_img16_1_1ablation.png)
 ![Immagine 1](imgs/best_img_cam16_ablation.png)
 ![Immagine 2](imgs/best_img_cam_on_image16_ablation.png)
+
 *Example of an effective adversarial attack that is difficult for the human eye to perceive.*
 
 </center>
